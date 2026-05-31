@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <Resource Include="Assets\logo.png" Condition="Exists('Assets\logo.png')" />
+  </ItemGroup>
+</Project>
