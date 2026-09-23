@@ -257,8 +257,13 @@ namespace AXVideoPlayer
 
                 ApplyOnce();
 
-                if (_mediaPlayer.AudioTrack == trackId || attempts >= 12)
+                int activeTrack;
+                try { activeTrack = _mediaPlayer.AudioTrack; }
+                catch (Exception ex) { App.LogException(ex); activeTrack = -1; }
+                if (activeTrack == trackId || attempts >= 12)
                 {
+                    if (attempts >= 12 && activeTrack != trackId)
+                        App.LogException(new InvalidOperationException($"Could not select audio track {trackId}."));
                     timer.Stop();
                     refreshMenu();
                 }

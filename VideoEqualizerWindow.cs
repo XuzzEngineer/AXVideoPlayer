@@ -11,6 +11,7 @@ namespace AXVideoPlayer
         private readonly Action<bool> _setEnabled;
         private readonly Action<string, double> _setValue;
         private readonly Action _reset;
+        private readonly Action _clearHistory;
         private bool _isUpdating;
 
         public VideoEqualizerWindow(
@@ -20,13 +21,16 @@ namespace AXVideoPlayer
             double saturation,
             double gamma,
             double hue,
+            double sharpness,
             Action<bool> setEnabled,
             Action<string, double> setValue,
-            Action reset)
+            Action reset,
+            Action clearHistory)
         {
             _setEnabled = setEnabled;
             _setValue = setValue;
             _reset = reset;
+            _clearHistory = clearHistory;
 
             Title = "Video Equalizer";
             Width = 520;
@@ -36,10 +40,10 @@ namespace AXVideoPlayer
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Background = new SolidColorBrush(Color.FromRgb(32, 32, 32));
 
-            Content = BuildContent(enabled, brightness, contrast, saturation, gamma, hue);
+            Content = BuildContent(enabled, brightness, contrast, saturation, gamma, hue, sharpness);
         }
 
-        private UIElement BuildContent(bool enabled, double brightness, double contrast, double saturation, double gamma, double hue)
+        private UIElement BuildContent(bool enabled, double brightness, double contrast, double saturation, double gamma, double hue, double sharpness)
         {
             var panel = new StackPanel { Margin = new Thickness(16) };
 
@@ -68,13 +72,20 @@ namespace AXVideoPlayer
             Slider saturationSlider = AddSlider(panel, "Saturation", "saturation", saturation, 0, 3);
             Slider gammaSlider = AddSlider(panel, "Gamma", "gamma", gamma, 0.1, 3);
             Slider hueSlider = AddSlider(panel, "Hue", "hue", hue, -180, 180);
+            Slider sharpnessSlider = AddSlider(panel, "Sharpness", "sharpness", sharpness, 0, 2);
+
+            var buttons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 14, 0, 0)
+            };
 
             var resetButton = new Button
             {
                 Content = "Reset",
                 Width = 92,
                 Height = 32,
-                Margin = new Thickness(0, 14, 0, 0),
+                Margin = new Thickness(0, 0, 8, 0),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             resetButton.Click += (_, _) =>
@@ -85,10 +96,33 @@ namespace AXVideoPlayer
                 saturationSlider.Value = 1.0;
                 gammaSlider.Value = 1.0;
                 hueSlider.Value = 0.0;
+                sharpnessSlider.Value = 0.0;
                 _isUpdating = false;
                 _reset();
             };
-            panel.Children.Add(resetButton);
+            buttons.Children.Add(resetButton);
+
+            var clearButton = new Button
+            {
+                Content = "Clear History",
+                Width = 112,
+                Height = 32,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            clearButton.Click += (_, _) =>
+            {
+                _isUpdating = true;
+                brightnessSlider.Value = 1.0;
+                contrastSlider.Value = 1.0;
+                saturationSlider.Value = 1.0;
+                gammaSlider.Value = 1.0;
+                hueSlider.Value = 0.0;
+                sharpnessSlider.Value = 0.0;
+                _isUpdating = false;
+                _clearHistory();
+            };
+            buttons.Children.Add(clearButton);
+            panel.Children.Add(buttons);
 
             return panel;
         }

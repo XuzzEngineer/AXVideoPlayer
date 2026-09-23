@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+installer/payload/
+installer/AXVideoPlayerInstaller/Payload.zip
+publish/

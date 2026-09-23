@@ -32,8 +32,8 @@ namespace AXVideoPlayer
         public void SetGamma(float value) { Gamma = Clamp(value, 0.1f, 3f); Apply(); }
         public void SetHue(float value) { Hue = Clamp(value, -180f, 180f); Apply(); }
 
-        // VLC exposes brightness/contrast/saturation/hue/gamma through video adjustment.
-        // Sharpness is kept modular here so the UI/API is ready; applying it requires VLC's sharpen filter support.
+        // VLC exposes brightness/contrast/saturation/hue/gamma live through video adjustment.
+        // Sharpness is applied as a native VLC media filter when MainWindow recreates the media.
         public void SetSharpness(float value) { Sharpness = Clamp(value, 0f, 2f); }
 
         public void Reset()

@@ -6,9 +6,11 @@ namespace AXVideoPlayer
     internal sealed class AudioEqualizerService
     {
         private readonly MediaPlayer _mediaPlayer;
+        private const float EnabledEqualizerCompensationDb = 6f;
         private Equalizer? _equalizer;
 
         private float _preamp;
+        private float _volumeBoostDb;
         private readonly float[] _bands = new float[10];
 
         public bool IsEnabled { get; private set; }
@@ -27,6 +29,12 @@ namespace AXVideoPlayer
         public void SetPreamp(float db)
         {
             _preamp = Clamp(db, -20f, 20f);
+            Apply();
+        }
+
+        public void SetVolumeBoost(float db)
+        {
+            _volumeBoostDb = Clamp(db, 0f, 12f);
             Apply();
         }
 
@@ -49,7 +57,7 @@ namespace AXVideoPlayer
 
         public void Apply()
         {
-            if (!IsEnabled)
+            if (!IsEnabled && _volumeBoostDb <= 0f)
             {
                 TrySetEqualizer(null);
                 return;
@@ -59,10 +67,11 @@ namespace AXVideoPlayer
             if (_equalizer == null)
                 return;
 
-            _equalizer.SetPreamp(_preamp);
+            float enabledCompensation = IsEnabled ? EnabledEqualizerCompensationDb : 0f;
+            _equalizer.SetPreamp(Clamp((IsEnabled ? _preamp : 0f) + enabledCompensation + _volumeBoostDb, -20f, 20f));
 
             for (int i = 0; i < _bands.Length; i++)
-                _equalizer.SetAmp(_bands[i], (uint)i);
+                _equalizer.SetAmp(IsEnabled ? _bands[i] : 0f, (uint)i);
 
             TrySetEqualizer(_equalizer);
         }

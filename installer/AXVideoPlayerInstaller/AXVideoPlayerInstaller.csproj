@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>..\..\Assets\logo.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>AXVideoPlayerSetup</AssemblyName>
+    <RootNamespace>AXVideoPlayerInstaller</RootNamespace>
+    <AssemblyTitle>AX Video Player Setup</AssemblyTitle>
+    <Product>AX Video Player Setup</Product>
+    <Version>2.3.0</Version>
+    <FileVersion>2.3.0.0</FileVersion>
+    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Payload.zip" />
+    <EmbeddedResource Include="..\..\Assets\logo.png" Link="logo.png" />
+  </ItemGroup>
+
+</Project>

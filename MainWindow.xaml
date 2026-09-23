@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wpf="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
-        Title="AX Video Player"
+        Title="AX Video Player V2.3"
         Icon="Assets/logo.png"
         Width="1200"
         Height="720"
@@ -36,6 +36,37 @@
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="MinWidth" Value="42"/>
             <Setter Property="Height" Value="34"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#2D2D2D"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#555555"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#171717"/>
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#6B6B6B"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                                <Setter TargetName="Chrome" Property="Background" Value="#1A1A1A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="LeftControlButtonStyle"
@@ -72,8 +103,10 @@
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                CornerRadius="8">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -300,6 +333,25 @@
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
         </Style>
+
+        <DataTemplate x:Key="PlaylistItemTemplate">
+            <TextBlock Text="{Binding PlaylistLabel}" TextTrimming="CharacterEllipsis" Padding="8,4"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="MusicTrackItemTemplate">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.35*"/>
+                    <ColumnDefinition Width="1.35*"/>
+                    <ColumnDefinition Width="64"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding Artist}" Foreground="#C7C7C7" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="{Binding Album}" Foreground="#C7C7C7" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="{Binding Duration}" Foreground="#C7C7C7" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid x:Name="RootGrid" Background="Black">
@@ -320,6 +372,7 @@
               Grid.RowSpan="1"
               Grid.Column="1"
               Background="Black"
+              SizeChanged="MainVideoArea_SizeChanged"
               MouseLeftButtonDown="MainVideoArea_MouseLeftButtonDown">
 
             <wpf:VideoView x:Name="VideoView"
@@ -327,6 +380,126 @@
                            VerticalAlignment="Stretch"
                            Visibility="Collapsed"
                            IsHitTestVisible="False"/>
+
+            <Image x:Name="SuperResolutionImage"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   Stretch="Uniform"
+                   Visibility="Collapsed"
+                   IsHitTestVisible="False"
+                   SnapsToDevicePixels="True"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+
+            <Grid x:Name="MusicModePanel"
+                  Background="#101010"
+                  Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Margin="18,14,18,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="1.35*"/>
+                        <ColumnDefinition Width="1.35*"/>
+                        <ColumnDefinition Width="64"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Title" FontWeight="SemiBold" Foreground="#E8E8E8"/>
+                    <TextBlock Grid.Column="1" Text="Artist" FontWeight="SemiBold" Foreground="#E8E8E8"/>
+                    <TextBlock Grid.Column="2" Text="Album" FontWeight="SemiBold" Foreground="#E8E8E8"/>
+                    <TextBlock Grid.Column="3" Text="Time" FontWeight="SemiBold" Foreground="#E8E8E8" HorizontalAlignment="Right"/>
+                </Grid>
+
+                <ListBox x:Name="MusicTrackList"
+                         Grid.Row="1"
+                         Background="#101010"
+                         BorderThickness="0"
+                         ItemTemplate="{StaticResource MusicTrackItemTemplate}"
+                         SelectionChanged="MusicTrackList_SelectionChanged"
+                         MouseDoubleClick="MusicTrackList_MouseDoubleClick"/>
+
+                <Border Grid.Row="2"
+                        Background="#181818"
+                        BorderBrush="#2A2A2A"
+                        BorderThickness="0,1,0,0"
+                        Padding="14,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="64"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="52" Height="52" Background="#262626" CornerRadius="3" VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock Text="♫" FontSize="24" Foreground="#858585" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Image x:Name="NowPlayingArtwork" Stretch="UniformToFill"/>
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                            <TextBlock Text="Now Playing" Foreground="#4FA3FF" FontSize="12" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="NowPlayingTitle" Text="Drop music or video to play it now" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="NowPlayingArtist" Foreground="#BDBDBD" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border x:Name="ProcessingStatsPanel"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="12"
+                    Background="#CC101010"
+                    BorderBrush="#555555"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,7"
+                    Visibility="Collapsed"
+                    Panel.ZIndex="8">
+                <TextBlock x:Name="ProcessingStatsText"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           Foreground="#EDEDED"
+                           Text="Render Path: Standard"/>
+            </Border>
+
+            <Border x:Name="SuperResolutionWarningPanel"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="8"
+                    Background="#88101010"
+                    BorderBrush="#CCF0B24A"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8,6"
+                    MaxWidth="360"
+                    Visibility="Collapsed"
+                    Panel.ZIndex="9">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="SuperResolutionWarningText"
+                               Text="Upscale is dropping frames. Lower SR scale."
+                               Foreground="#FFF4D58A"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,0,8,0"/>
+
+                    <Button Grid.Column="1"
+                            Content="x"
+                            Width="20"
+                            Height="20"
+                            Padding="0"
+                            Background="#22101010"
+                            Foreground="#FFF4D58A"
+                            BorderBrush="#66F0B24A"
+                            BorderThickness="1"
+                            Click="CloseSuperResolutionWarning_Click"/>
+                </Grid>
+            </Border>
 
             <Border x:Name="EmptyStatePanel"
                     Background="#2B2B2B"
@@ -344,7 +517,7 @@
                            Margin="0,0,0,14"/>
 
                     <TextBlock Text="AX Video Player"
-                               FontSize="42"
+                               FontSize="34"
                                FontWeight="Bold"
                                Foreground="#4A4A4A"
                                HorizontalAlignment="Center"
@@ -384,6 +557,8 @@
                          Background="#101010"
                          Foreground="White"
                          BorderBrush="#2A2A2A"
+                         ItemTemplate="{StaticResource PlaylistItemTemplate}"
+                         SelectionChanged="PlaylistBox_SelectionChanged"
                          MouseDoubleClick="PlaylistBox_MouseDoubleClick"/>
 
                 <StackPanel Grid.Row="2"
@@ -392,6 +567,18 @@
                     <Button Content="Add"
                             Style="{StaticResource PlayerButtonStyle}"
                             Click="AddToPlaylist_Click"/>
+
+                    <Button x:Name="ScanPlaylistFolderButton"
+                            Content="Scan"
+                            Style="{StaticResource PlayerButtonStyle}"
+                            IsEnabled="False"
+                            Click="ScanPlaylistFolder_Click"/>
+
+                    <Button x:Name="RemovePlaylistItemButton"
+                            Content="Remove"
+                            Style="{StaticResource PlayerButtonStyle}"
+                            IsEnabled="False"
+                            Click="RemovePlaylistItem_Click"/>
 
                     <Button Content="Clear"
                             Style="{StaticResource PlayerButtonStyle}"
@@ -421,7 +608,7 @@
                            Margin="0,0,8,0"/>
 
                     <TextBlock Text="AX Video Player"
-                               FontSize="18"
+                               FontSize="16"
                                FontWeight="SemiBold"
                                Margin="0,0,12,0"/>
 
@@ -432,6 +619,12 @@
                     <Button Content="Tools"
                             Style="{StaticResource PlayerButtonStyle}"
                             Click="Tools_Click"/>
+
+                    <TextBlock Text="V2.3"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="#CFCFCF"
+                               Margin="2,0,0,0"/>
                 </StackPanel>
 
                 <Button x:Name="HideUiButton"
@@ -585,6 +778,9 @@
                                     Width="100"
                                     Minimum="0"
                                     Maximum="100"
+                                    SmallChange="5"
+                                    LargeChange="10"
+                                    TickFrequency="5"
                                     Value="100"
                                     VerticalAlignment="Center"
                                     PreviewMouseLeftButtonDown="VolumeSlider_PreviewMouseLeftButtonDown"
@@ -592,7 +788,7 @@
 
                             <TextBlock x:Name="VolumePercentText"
                                        Text="100%"
-                                       Width="42"
+                                       Width="50"
                                        Margin="4,0,10,0"/>
 
                             <TextBlock x:Name="SpeedLabel"
@@ -608,6 +804,7 @@
                                 <ComboBoxItem Content="1.25x"/>
                                 <ComboBoxItem Content="1.5x"/>
                                 <ComboBoxItem Content="2.0x"/>
+                                <ComboBoxItem Content="3.0x"/>
                             </ComboBox>
 
                             <Button x:Name="CompactHideUiButton"
@@ -825,7 +1022,7 @@
                         <Slider x:Name="SharpnessSlider" Grid.Column="1" Minimum="0" Maximum="2" Value="0" Tag="sharpness" Style="{StaticResource BlueSliderStyle}" ValueChanged="VideoEqualizerSlider_ValueChanged"/>
                     </Grid>
 
-                    <TextBlock Text="Note: brightness, contrast, saturation, hue, and gamma use VLC video adjustment. Sharpness is exposed as a modular control; applying it depends on VLC sharpen-filter support."
+                    <TextBlock Text="Sharpness uses VLC native upscaling and applies after a brief resume-safe refresh."
                                TextWrapping="Wrap"
                                Foreground="#CFCFCF"
                                Margin="0,8,0,4"/>
@@ -835,45 +1032,188 @@
                             Margin="0,10,0,0"
                             Style="{StaticResource PlayerButtonStyle}"
                             Click="VideoEqualizerReset_Click"/>
+
+                    <Button Content="Clear History"
+                            HorizontalAlignment="Left"
+                            Margin="0,4,0,0"
+                            Style="{StaticResource PlayerButtonStyle}"
+                            Click="VideoEqualizerClearHistory_Click"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
-        <Border x:Name="ResumePromptPanel"
-                Grid.Row="0"
-                Grid.RowSpan="3"
-                Grid.Column="1"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Margin="18"
-                Background="#E01F1F1F"
-                BorderBrush="#555555"
+        <Popup x:Name="SuperResolutionPopup"
+               PlacementTarget="{Binding ElementName=HideUiButton}"
+               Placement="Bottom"
+               HorizontalOffset="-360"
+               VerticalOffset="8"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               IsOpen="False">
+        <Border x:Name="SuperResolutionPanel"
+                Width="430"
+                MaxHeight="440"
+                Background="#F0202020"
+                BorderBrush="#5B6F8A"
                 BorderThickness="1"
-                CornerRadius="6"
-                Padding="14,10"
-                Panel.ZIndex="60"
-                Opacity="0"
-                Visibility="Collapsed">
-            <StackPanel>
-                <TextBlock x:Name="ResumePromptText"
-                           Text="Resume from 00:00?"
-                           FontSize="15"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,8"/>
+                CornerRadius="8"
+                Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Super Resolution"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Left"/>
+                        <Button Content="X"
+                                Width="32"
+                                Height="28"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource PlayerButtonStyle}"
+                                Click="CloseSuperResolutionPanel_Click"/>
+                    </Grid>
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Yes"
-                            Width="72"
-                            Height="28"
-                            Margin="0,0,8,0"
-                            Click="ResumePromptYes_Click"/>
-                    <Button Content="No"
-                            Width="72"
-                            Height="28"
-                            Click="ResumePromptNo_Click"/>
+                    <CheckBox x:Name="SuperResolutionEnableCheckBox"
+                              Content="Enable live upscaling"
+                              Foreground="White"
+                              Margin="0,0,0,12"
+                              Checked="SuperResolutionEnable_Checked"
+                              Unchecked="SuperResolutionEnable_Checked"/>
+
+                    <Grid Margin="0,8,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="98"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="54"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Scale"/>
+                        <Slider x:Name="SuperResolutionScaleSlider"
+                                Grid.Column="1"
+                                Minimum="1"
+                                Maximum="4"
+                                Value="1.3"
+                                TickFrequency="0.25"
+                                IsSnapToTickEnabled="False"
+                                Style="{StaticResource BlueSliderStyle}"
+                                ValueChanged="SuperResolutionScaleSlider_ValueChanged"/>
+                        <TextBlock x:Name="SuperResolutionScaleText"
+                                   Grid.Column="2"
+                                   Text="1.30x"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="98"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="54"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Detail"/>
+                        <Slider x:Name="SuperResolutionSharpnessSlider"
+                                Grid.Column="1"
+                                Minimum="0"
+                                Maximum="2"
+                                Value="1"
+                                TickFrequency="0.05"
+                                IsSnapToTickEnabled="False"
+                                Style="{StaticResource BlueSliderStyle}"
+                                ValueChanged="SuperResolutionSharpnessSlider_ValueChanged"/>
+                        <TextBlock x:Name="SuperResolutionSharpnessText"
+                                   Grid.Column="2"
+                                   Text="1.00"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <TextBlock x:Name="SuperResolutionStatusText"
+                               Text="SR is off"
+                               TextWrapping="Wrap"
+                               Foreground="#D6E6FF"
+                               Margin="0,12,0,8"/>
+
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0,8,0,0">
+                        <Button Content="Save SR comparison"
+                                MinWidth="154"
+                                Height="32"
+                                Style="{StaticResource PlayerButtonStyle}"
+                                Click="SaveSuperResolutionComparison_Click"/>
+                        <Button Content="Reset"
+                                MinWidth="70"
+                                Height="32"
+                                Margin="8,0,0,0"
+                                Style="{StaticResource PlayerButtonStyle}"
+                                Click="ResetSuperResolution_Click"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </ScrollViewer>
         </Border>
+        </Popup>
+
+        <Popup x:Name="ResumePromptPopup"
+               PlacementTarget="{Binding ElementName=RootGrid}"
+               Placement="Relative"
+               HorizontalOffset="18"
+               VerticalOffset="58"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               Focusable="False"
+               IsOpen="False">
+            <Border x:Name="ResumePromptPanel"
+                    Background="#F01F1F1F"
+                    BorderBrush="#888888"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14,10"
+                    Opacity="0">
+                <StackPanel>
+                    <TextBlock x:Name="ResumePromptText"
+                               Text="Resume from 00:00?"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               Margin="0,0,0,8"/>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Yes"
+                                Width="72"
+                                Height="28"
+                                Margin="0,0,8,0"
+                                Click="ResumePromptYes_Click"/>
+                        <Button Content="No"
+                                Width="72"
+                                Height="28"
+                                Click="ResumePromptNo_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <Popup x:Name="VideoInfoOverlayPopup"
+               PlacementTarget="{Binding ElementName=RootGrid}"
+               Placement="Relative"
+               HorizontalOffset="8"
+               VerticalOffset="58"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               Focusable="False"
+               IsOpen="False">
+            <Border x:Name="VideoInfoOverlayPanel"
+                    Background="#CC101010"
+                    BorderBrush="#AA606060"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                    MinWidth="210"
+                    IsHitTestVisible="False">
+                <TextBlock x:Name="VideoInfoOverlayText"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="#FFFFFFFF"
+                           TextAlignment="Right"
+                           Text="FPS --&#x0a;Resolution --&#x0a;SR Off&#x0a;Bitrate --"/>
+            </Border>
+        </Popup>
 
         <Popup x:Name="FullscreenTopPopup"
                PlacementTarget="{Binding ElementName=RootGrid}"
@@ -919,6 +1259,28 @@
                   Background="#01000000"
                   ClipToBounds="True"
                   IsHitTestVisible="True"/>
+        </Popup>
+
+        <Popup x:Name="ProcessingStatsPopup"
+               PlacementTarget="{Binding ElementName=RootGrid}"
+               Placement="Relative"
+               HorizontalOffset="12"
+               VerticalOffset="58"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               Focusable="False"
+               IsOpen="False">
+            <Border Background="#CC101010"
+                    BorderBrush="#555555"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,7">
+                <TextBlock x:Name="ProcessingStatsPopupText"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           Foreground="#EDEDED"
+                           Text="Render Path: Standard"/>
+            </Border>
         </Popup>
 
         <Popup x:Name="ShowUiPopup"

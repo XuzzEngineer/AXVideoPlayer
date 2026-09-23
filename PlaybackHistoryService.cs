@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace AXVideoPlayer
@@ -8,13 +9,16 @@ namespace AXVideoPlayer
     internal sealed class PlaybackHistoryService
     {
         private readonly string _filePath;
+        private readonly CoalescedTextFileWriter _writer;
         private readonly Dictionary<string, long> _positions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<string> _playlist = new();
 
-        public bool ResumeEnabled { get; private set; } = true;
+        public bool RememberEnabled { get; private set; }
 
         public PlaybackHistoryService()
         {
-            _filePath = Path.Combine(AppContext.BaseDirectory, "AXVideoPlayer.playback.json");
+            _filePath = AppStoragePaths.GetUserDataFilePath("AXVideoPlayer.playback.json");
+            _writer = new CoalescedTextFileWriter(_filePath);
             Load();
         }
 
@@ -27,7 +31,7 @@ namespace AXVideoPlayer
 
         public void SetPosition(string videoPath, long milliseconds)
         {
-            if (string.IsNullOrWhiteSpace(videoPath))
+            if (!RememberEnabled || string.IsNullOrWhiteSpace(videoPath))
                 return;
 
             if (milliseconds <= 0)
@@ -38,15 +42,36 @@ namespace AXVideoPlayer
             Save();
         }
 
-        public void SetResumeEnabled(bool enabled)
+        public void SetRememberEnabled(bool enabled)
         {
-            ResumeEnabled = enabled;
+            RememberEnabled = enabled;
+            if (!enabled)
+            {
+                _positions.Clear();
+                _playlist.Clear();
+            }
             Save();
         }
+
+        public void SetPlaylist(IEnumerable<string> paths)
+        {
+            if (!RememberEnabled)
+                return;
+
+            _playlist.Clear();
+            _playlist.AddRange(paths
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(NormalizePath)
+                .Distinct(StringComparer.OrdinalIgnoreCase));
+            Save();
+        }
+
+        public IReadOnlyList<string> GetPlaylist() => RememberEnabled ? _playlist.ToArray() : Array.Empty<string>();
 
         public void ClearHistory()
         {
             _positions.Clear();
+            _playlist.Clear();
             Save();
         }
 
@@ -62,22 +87,32 @@ namespace AXVideoPlayer
                 if (data == null)
                     return;
 
-                ResumeEnabled = data.ResumeEnabled;
+                // Older builds used ResumeEnabled. Do not migrate that opt-in automatically:
+                // the combined music/video memory feature is intentionally off by default.
+                RememberEnabled = data.RememberEnabled == true;
                 _positions.Clear();
+                _playlist.Clear();
 
-                if (data.Positions == null)
+                if (!RememberEnabled)
                     return;
 
-                foreach (var pair in data.Positions)
+                if (data.Positions != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(pair.Key) && pair.Value > 0)
-                        _positions[NormalizePath(pair.Key)] = pair.Value;
+                    foreach (var pair in data.Positions)
+                    {
+                        if (!string.IsNullOrWhiteSpace(pair.Key) && pair.Value > 0)
+                            _positions[NormalizePath(pair.Key)] = pair.Value;
+                    }
                 }
+
+                if (data.Playlist != null)
+                    _playlist.AddRange(data.Playlist.Where(path => !string.IsNullOrWhiteSpace(path)).Select(NormalizePath).Distinct(StringComparer.OrdinalIgnoreCase));
             }
             catch
             {
-                ResumeEnabled = true;
+                RememberEnabled = false;
                 _positions.Clear();
+                _playlist.Clear();
             }
         }
 
@@ -87,17 +122,23 @@ namespace AXVideoPlayer
             {
                 var data = new PlaybackHistoryData
                 {
-                    ResumeEnabled = ResumeEnabled,
+                    RememberEnabled = RememberEnabled,
+                    Playlist = new List<string>(_playlist),
                     Positions = new Dictionary<string, long>(_positions, StringComparer.OrdinalIgnoreCase)
                 };
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
+                _writer.QueueWrite(json);
             }
             catch
             {
                 // Playback history is a convenience feature; never interrupt playback for persistence errors.
             }
+        }
+
+        public void Flush()
+        {
+            _writer.Flush();
         }
 
         private static string NormalizePath(string path)
@@ -114,8 +155,9 @@ namespace AXVideoPlayer
 
         private sealed class PlaybackHistoryData
         {
-            public bool ResumeEnabled { get; set; } = true;
+            public bool? RememberEnabled { get; set; }
             public Dictionary<string, long>? Positions { get; set; }
+            public List<string>? Playlist { get; set; }
         }
     }
 }
