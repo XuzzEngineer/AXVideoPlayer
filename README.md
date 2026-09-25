@@ -2,7 +2,7 @@
 
 AX Video Player is a Windows video and music player with playlists, resume playback, audio and video controls, and optional super resolution tools.
 
-https://github.com/XuzzEngineer/AXVideoPlayer/releases/tag/v2.4.0
+[https://github.com/XuzzEngineer/AXVideoPlayer/releases/tag/v2.4.0](https://github.com/XuzzEngineer/AXVideoPlayer/releases/download/v2.4.0/AXVideoPlayerSetup-V2.4.exe)
 
 The installer contains a self-contained Windows build and LibVLC. Optional AI and FFmpeg tools are downloaded when first needed. Generated binaries and third-party payloads are not stored in this source repository. See [TESTING.md](TESTING.md) for optional network and subtitle-track checks.
 
